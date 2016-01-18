@@ -17,7 +17,13 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Wearable;
 import com.parrot.arsdk.ardiscovery.ARDiscoveryDeviceBLEService;
 import com.parrot.arsdk.ardiscovery.ARDiscoveryDeviceService;
 import com.parrot.arsdk.ardiscovery.ARDiscoveryService;
@@ -30,9 +36,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class MainActivity extends ActionBarActivity implements ARDiscoveryServicesDevicesListUpdatedReceiverDelegate
-{
+public class MainActivity extends ActionBarActivity implements ARDiscoveryServicesDevicesListUpdatedReceiverDelegate,GoogleApiClient.ConnectionCallbacks, MessageApi.MessageListener {
     private static String TAG = MainActivity.class.getSimpleName();
+    ////////////////
+    private final String[] SEND_MESSAGES = {"/Action/NONE",  "/Action/UP", "/Action/DOWN", "/Action/RIGHT", "/Action/LEFT"};
+    private GoogleApiClient mGoogleApiClient;
+    ////////////////
 
     static
     {
@@ -114,7 +123,22 @@ public class MainActivity extends ActionBarActivity implements ARDiscoveryServic
             }
 
         });
+        /////////////////////
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+                    @Override
+                    public void onConnectionFailed(ConnectionResult connectionResult) {
+                        Log.d(TAG, "onConnectionFailed:" + connectionResult.toString());
+                    }
+                })
+                .addApi(Wearable.API)
+                .build();
+
+        /////////////////////
     }
+
+
 
     private void startServices()
     {
@@ -288,5 +312,66 @@ public class MainActivity extends ActionBarActivity implements ARDiscoveryServic
             listView.setAdapter(adapter);
         }
 
+
     }
+
+    ////////////////////////////////////////////
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mGoogleApiClient.connect();
+    }
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (null != mGoogleApiClient && mGoogleApiClient.isConnected()) {
+            Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+            mGoogleApiClient.disconnect();
+        }
+    }
+    @Override
+    public void onConnected(Bundle bundle) {
+        Log.d(TAG, "onConnected");
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+        Log.d(TAG, "onConnectionSuspended");
+
+    }
+
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        Log.d(TAG, "onMessageReceived : " + messageEvent.getPath());
+
+        String msg = messageEvent.getPath();
+        if (SEND_MESSAGES[1].equals(msg)) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "UP", Toast.LENGTH_LONG).show();
+                }
+            });
+        } else if (SEND_MESSAGES[2].equals(msg)) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "DOWN", Toast.LENGTH_LONG).show();
+                }
+            });
+        } else if (SEND_MESSAGES[3].equals(msg)) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "RIGHT", Toast.LENGTH_LONG).show();
+                }
+            });
+        } else if (SEND_MESSAGES[4].equals(msg)) {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "LEFT", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+    }
+    ////////////////////////////////////////////
+
 }
