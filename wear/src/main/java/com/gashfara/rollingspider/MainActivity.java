@@ -31,7 +31,7 @@ public class MainActivity extends Activity implements SensorEventListener{
 
     //////
     //THRESHOLD ある値以上を検出するための閾値
-    protected final static double THRESHOLD=15.0;//12 4.0
+    protected final static double THRESHOLD=2.0;//12 4.0
     protected final static double THRESHOLD_MIN=1;
 
     //low pass filter alpha ローパスフィルタのアルファ値
@@ -107,7 +107,8 @@ public class MainActivity extends Activity implements SensorEventListener{
 
         if(sensors.size()>0){
             Sensor s =sensors.get(0);
-            manager.registerListener(this, s,SensorManager.SENSOR_DELAY_UI);
+            //manager.registerListener(this, s,SensorManager.SENSOR_DELAY_UI);
+            manager.registerListener(this, s,SensorManager.SENSOR_DELAY_FASTEST);
         }
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -240,26 +241,31 @@ public class MainActivity extends Activity implements SensorEventListener{
      * 超適当な判定
      *
      */
+    //前のデータ
+    float ox=0, oy=0,  oz=0;
     private int detectMotion(float x, float y, float z) {
         int motion = 0;
         Log.d(TAG, "s:"  + (int)x + "/" + (int)y + "/" + (int)z);
 
 
 
-        if (y > 10) {
+        if (y > 1 && oy > 1) {//10
             Log.d(TAG, "RIGHT!"+y);
             motion = 3;
-        } else if (y < -10) {
+        } else if (y < -1 && oy < -1) {//10
             Log.d(TAG, "LEFT!"+y);
             motion = 4;
-        }else if (z > 5) {
+        }else if (z > 1 && oz > 1) {//5
             Log.d(TAG, "up!"+z);
             motion = 1;
-        } else if (z < -5) {
+        } else if (z < -1 && oz < -1) {//5
             Log.d(TAG, "down!"+z);
             motion = 2;
         }
-
+        //前のデータ
+        ox = x;
+        oy = y;
+        oz = z;
         if (mTextView != null) mTextView.setText(SEND_MESSAGES[motion]);
         return motion;
     }
